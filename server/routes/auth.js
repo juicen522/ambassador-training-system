@@ -1,11 +1,18 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { getDb, rowToUser } from '../db/database.js';
 import { signToken, authRequired } from '../middleware/auth.js';
+import { loadSettings } from '../settings.js';
+import { isProductionMode } from '../lib/appMode.js';
 
 const router = Router();
 
 router.post('/quick-login', (req, res) => {
+  const settings = loadSettings();
+  if (isProductionMode() && !settings.features.showQuickLogin) {
+    return res.status(403).json({ error: '生产环境已关闭快捷登录，请使用账号密码登录' });
+  }
   const { username } = req.body ?? {};
   if (!username) {
     return res.status(400).json({ error: '请选择登录身份' });

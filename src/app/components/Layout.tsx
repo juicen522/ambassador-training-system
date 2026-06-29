@@ -298,6 +298,8 @@ export default function Layout() {
               </p>
             </div>
           </div>
+          {publicSettings.features.showQuickLogin && (
+            <>
           <button
             type="button"
             disabled={switchingAccount}
@@ -362,6 +364,8 @@ export default function Layout() {
                 </div>
               ))}
             </div>
+          )}
+            </>
           )}
         </div>
       </aside>

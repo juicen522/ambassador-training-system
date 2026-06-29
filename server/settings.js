@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { isProductionMode } from './lib/appMode.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SETTINGS_DIR = path.join(__dirname, 'data');
@@ -193,7 +194,21 @@ function applyEnvFallback(settings) {
 
 export function loadSettings() {
   const merged = deepMerge(DEFAULT_SETTINGS, readFileSettings());
+  if (isProductionMode() && merged.features.showQuickLogin && !readFileSettings().features) {
+    merged.features.showQuickLogin = false;
+  }
   return applyEnvFallback(merged);
+}
+
+/** 生产环境：首次写入 settings.json，关闭快捷登录 */
+export function ensureProductionSettingsDefaults() {
+  if (!isProductionMode() || fs.existsSync(SETTINGS_PATH)) return;
+
+  const initial = structuredClone(DEFAULT_SETTINGS);
+  initial.features.showQuickLogin = false;
+  fs.mkdirSync(SETTINGS_DIR, { recursive: true });
+  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(initial, null, 2), 'utf8');
+  console.log('[settings] 已初始化生产环境配置（已关闭快捷登录）');
 }
 
 /** @returns {'strict' | 'flexible'} */

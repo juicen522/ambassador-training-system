@@ -21,7 +21,7 @@ import {
 import { useNavigationCopy } from '../hooks/useNavigationCopy';
 import SectionPageLayout from './SectionPageLayout';
 import { useUser, User, UserRole } from '../contexts/UserContext';
-import { updateUserManager } from '../lib/authApi';
+import { updateUserManager, createUser } from '../lib/authApi';
 import { useMaterials } from '../contexts/MaterialsContext';
 import MaterialFormDialog from './MaterialFormDialog';
 import AdminQuizPanel from './AdminQuizPanel';
@@ -30,7 +30,7 @@ import type { Material } from '../types/material';
 type AdminTab = 'users' | 'materials' | 'quizzes' | 'training';
 
 export default function AdminPanel() {
-  const { currentUser, allUsers } = useUser();
+  const { currentUser, allUsers, reloadAllUsers } = useUser();
   const nav = useNavigationCopy();
   const {
     materials,
@@ -56,6 +56,15 @@ export default function AdminPanel() {
   const [managerDrafts, setManagerDrafts] = useState<Record<string, string>>({});
   const [managerSavingId, setManagerSavingId] = useState<string | null>(null);
   const [managerMessage, setManagerMessage] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    username: '',
+    password: '',
+    name: '',
+    role: 'new' as UserRole,
+  });
+  const [createSaving, setCreateSaving] = useState(false);
+  const [createMessage, setCreateMessage] = useState('');
   const draggingIdRef = useRef<string | null>(null);
   const orderedMaterialsRef = useRef<Material[]>([]);
   const isDraggingRef = useRef(false);
@@ -190,6 +199,28 @@ export default function AdminPanel() {
   const getManagerId = (user: User) =>
     managerDrafts[user.id] !== undefined ? managerDrafts[user.id] : (user.managerId ?? '');
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateSaving(true);
+    setCreateMessage('');
+    try {
+      await createUser({
+        username: createForm.username.trim(),
+        password: createForm.password,
+        name: createForm.name.trim(),
+        role: createForm.role,
+      });
+      await reloadAllUsers();
+      setCreateForm({ username: '', password: '', name: '', role: 'new' });
+      setCreateOpen(false);
+      setCreateMessage('账号已创建');
+    } catch (err) {
+      setCreateMessage(err instanceof Error ? err.message : '创建失败');
+    } finally {
+      setCreateSaving(false);
+    }
+  };
+
   const handleSaveManager = async (user: User) => {
     setManagerSavingId(user.id);
     setManagerMessage('');
@@ -219,6 +250,74 @@ export default function AdminPanel() {
       onTabChange={(id) => setActiveTab(id as AdminTab)}
     >
       {activeTab === 'users' && (<div>
+
+      <div className="bg-white p-4 rounded-lg border mb-6" style={{ borderColor: 'rgba(56, 44, 37, 0.06)' }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h3 className="text-sm font-medium" style={{ color: '#382C25' }}>人员账号</h3>
+          <button
+            type="button"
+            onClick={() => setCreateOpen((o) => !o)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all"
+            style={{ borderColor: '#5EC4B6', color: '#5EC4B6' }}
+          >
+            <Plus className="w-4 h-4" />
+            {createOpen ? '收起' : '新增账号'}
+          </button>
+        </div>
+        {createMessage && (
+          <p className="text-xs mb-3" style={{ color: '#5EC4B6' }}>{createMessage}</p>
+        )}
+        {createOpen && (
+          <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input
+              placeholder="用户名（登录用）"
+              value={createForm.username}
+              onChange={(e) => setCreateForm((f) => ({ ...f, username: e.target.value }))}
+              className="px-3 py-2 border rounded-lg text-sm outline-none"
+              style={{ borderColor: 'rgba(56, 44, 37, 0.15)' }}
+              required
+            />
+            <input
+              type="password"
+              placeholder="初始密码（至少 6 位）"
+              value={createForm.password}
+              onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+              className="px-3 py-2 border rounded-lg text-sm outline-none"
+              style={{ borderColor: 'rgba(56, 44, 37, 0.15)' }}
+              required
+              minLength={6}
+            />
+            <input
+              placeholder="姓名"
+              value={createForm.name}
+              onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+              className="px-3 py-2 border rounded-lg text-sm outline-none"
+              style={{ borderColor: 'rgba(56, 44, 37, 0.15)' }}
+              required
+            />
+            <select
+              value={createForm.role}
+              onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value as UserRole }))}
+              className="px-3 py-2 border rounded-lg text-sm outline-none"
+              style={{ borderColor: 'rgba(56, 44, 37, 0.15)' }}
+            >
+              <option value="new">全新大使</option>
+              <option value="certified">正式大使</option>
+              <option value="admin">管理员</option>
+            </select>
+            <div className="md:col-span-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={createSaving}
+                className="px-4 py-2 rounded-lg text-sm text-white disabled:opacity-60"
+                style={{ backgroundColor: '#5EC4B6' }}
+              >
+                {createSaving ? '创建中…' : '创建账号'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

@@ -31,6 +31,20 @@ export async function fetchAllUsers() {
   return data.users as User[];
 }
 
+export async function createUser(input: {
+  username: string;
+  password: string;
+  name: string;
+  role: User['role'];
+  managerId?: string | null;
+}) {
+  const data = await apiFetch('/users', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return data.user as User;
+}
+
 export async function updateUserManager(userId: string, managerId?: string | null) {
   const data = await apiFetch(`/users/${userId}/manager`, {
     method: 'PATCH',

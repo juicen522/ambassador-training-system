@@ -1,8 +1,11 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
+import { isProductionMode, shouldSeedDemoData } from '../lib/appMode.js';
+import { ensureProductionSettingsDefaults } from '../settings.js';
 import {
   migrateGarbledFileNames,
   migrateGarbledQuizImportFileNames,
@@ -238,16 +241,26 @@ export function initDatabase() {
   migrateServiceRequestActualDuration(database);
   migrateServiceRequestReturnFields(database);
   seedUsers(database);
-  seedMaterials(database);
-  seedActivities(database);
   seedDepartments(database);
-  seedServiceRequestsMock(database);
-  refreshDemoPendingBadgeSamples(database);
-  ensureSimulationFlowDemo(database);
-  syncDemoUsersOnly(database);
-  syncWangFangAmbassadorData(database);
+
+  if (shouldSeedDemoData()) {
+    seedMaterials(database);
+    seedActivities(database);
+    seedServiceRequestsMock(database);
+    refreshDemoPendingBadgeSamples(database);
+    ensureSimulationFlowDemo(database);
+    syncDemoUsersOnly(database);
+    syncWangFangAmbassadorData(database);
+    migrateAmbassadorTaskHygiene(database);
+    seedQuizBanks(database);
+    seedQuizAttemptsMock(database);
+  } else {
+    purgeDemoDataset(database);
+    ensureProductionAdmin(database);
+    ensureProductionSettingsDefaults();
+  }
+
   assignOrphanServiceRequestsToAdmin(database);
-  migrateAmbassadorTaskHygiene(database);
   migrateGarbledFileNames(database);
   migrateGarbledQuizImportFileNames(database);
   migrateActivitiesCopywritingVi(database);
@@ -255,9 +268,9 @@ export function initDatabase() {
   migrateQuizBanksExamRules(database);
   migrateKnowledgeExamQuestionLimit(database);
   migrateWeeklyQuizSchedule(database);
-  seedQuizBanks(database);
-  migrateSyncExamBanksFromLargestPool(database);
-  seedQuizAttemptsMock(database);
+  if (shouldSeedDemoData()) {
+    migrateSyncExamBanksFromLargestPool(database);
+  }
 
   return database;
 }
@@ -1335,7 +1348,9 @@ export function seedServiceRequestsMock(database) {
  */
 function assignOrphanServiceRequestsToAdmin(database) {
   const admin = database
-    .prepare(`SELECT id FROM users WHERE id = 'sim-admin' LIMIT 1`)
+    .prepare(
+      `SELECT id FROM users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1`,
+    )
     .get();
   if (!admin) return;
 
@@ -1378,6 +1393,126 @@ function assignOrphanServiceRequestsToAdmin(database) {
   console.log(
     `[db] 已将 ${orphans.length} 条未指派参观记录归到管理员（${admin.id}）`,
   );
+}
+
+const DEMO_USER_IDS = [
+  'sim-admin',
+  'sim-ambassador',
+  'demo-ambassador-002',
+  'demo-ambassador-003',
+  'demo-ambassador-004',
+  'demo-ambassador-005',
+];
+
+/** 生产环境：清除演示账号与 mock 业务数据（可重复执行） */
+function purgeDemoDataset(database) {
+  if (!isProductionMode()) return;
+
+  const demoUserPh = DEMO_USER_IDS.map(() => '?').join(',');
+
+  database.prepare(`DELETE FROM quiz_attempts WHERE id LIKE 'qa-mock-%'`).run();
+
+  database
+    .prepare(
+      `DELETE FROM service_request_assignments
+       WHERE user_id IN (${demoUserPh})
+          OR request_id LIKE 'mock-sr-%'
+          OR request_id = 'simulate-flow-001'`,
+    )
+    .run(...DEMO_USER_IDS);
+
+  database
+    .prepare(
+      `DELETE FROM service_request_supervisor_dispatches
+       WHERE user_id IN (${demoUserPh})
+          OR request_id LIKE 'mock-sr-%'
+          OR request_id = 'simulate-flow-001'`,
+    )
+    .run(...DEMO_USER_IDS);
+
+  database
+    .prepare(
+      `DELETE FROM service_requests
+       WHERE id LIKE 'mock-sr-%' OR id = 'simulate-flow-001'`,
+    )
+    .run();
+
+  database.prepare(`DELETE FROM activity_images WHERE activity_id LIKE 'act-seed-%'`).run();
+  database.prepare(`DELETE FROM activities WHERE id LIKE 'act-seed-%'`).run();
+  database.prepare(`DELETE FROM material_files WHERE material_id LIKE 'seed-%'`).run();
+  database.prepare(`DELETE FROM materials WHERE id LIKE 'seed-%'`).run();
+
+  database
+    .prepare(
+      `DELETE FROM quiz_questions
+       WHERE bank_id IN ('quiz-bank-weekly-default', 'quiz-bank-knowledge-default')
+         AND id LIKE 'qq-%'`,
+    )
+    .run();
+  database
+    .prepare(
+      `DELETE FROM quiz_banks
+       WHERE id IN ('quiz-bank-weekly-default', 'quiz-bank-knowledge-default')`,
+    )
+    .run();
+
+  database
+    .prepare(`DELETE FROM users WHERE id IN (${demoUserPh})`)
+    .run(...DEMO_USER_IDS);
+
+  console.log('[db] 已清理演示/mock 数据（生产环境）');
+}
+
+function defaultProgressJson(role) {
+  const stages = basicTrainingStagesTemplate.map((s) => ({ ...s, completed: false }));
+  return JSON.stringify({
+    basicTrainingStages: stages,
+    advancedCoursesCompleted: 0,
+    totalAdvancedCourses: 6,
+  });
+}
+
+/** 生产环境首次启动：从环境变量创建管理员（须设置 ADMIN_PASSWORD） */
+function ensureProductionAdmin(database) {
+  if (!isProductionMode()) return;
+
+  const hasAdmin = database
+    .prepare(`SELECT 1 FROM users WHERE role = 'admin' LIMIT 1`)
+    .get();
+  if (hasAdmin) return;
+
+  const username = String(process.env.ADMIN_USERNAME || 'admin').trim();
+  const password = String(process.env.ADMIN_PASSWORD || '').trim();
+  const name = String(process.env.ADMIN_NAME || '系统管理员').trim();
+
+  if (!username) {
+    throw new Error('[db] ADMIN_USERNAME 不能为空');
+  }
+  if (password.length < 6) {
+    throw new Error(
+      '[db] 生产环境首次启动须设置 ADMIN_PASSWORD（至少 6 位）以创建管理员账号',
+    );
+  }
+
+  const exists = database
+    .prepare('SELECT 1 FROM users WHERE username = ?')
+    .get(username);
+  if (exists) return;
+
+  database
+    .prepare(
+      `INSERT INTO users (id, username, password_hash, name, role, progress_json, manager_id)
+       VALUES (?, ?, ?, ?, 'admin', ?, NULL)`,
+    )
+    .run(
+      crypto.randomUUID(),
+      username,
+      bcrypt.hashSync(password, 10),
+      name,
+      defaultProgressJson('admin'),
+    );
+
+  console.log(`[db] 已创建生产环境管理员：${username}（${name}）`);
 }
 
 /**

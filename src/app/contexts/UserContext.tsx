@@ -40,6 +40,7 @@ interface UserContextType {
   loading: boolean;
   switchingAccount: boolean;
   switchAccount: (username: string) => Promise<void>;
+  reloadAllUsers: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -50,6 +51,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [bootError, setBootError] = useState('');
   const [switchingAccount, setSwitchingAccount] = useState(false);
+
+  const reloadAllUsers = async () => {
+    const users = await fetchAllUsers();
+    setAllUsers(users);
+  };
 
   const switchAccount = async (username: string) => {
     setSwitchingAccount(true);
@@ -130,6 +136,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         loading,
         switchingAccount,
         switchAccount,
+        reloadAllUsers,
       }}
     >
       {children}
