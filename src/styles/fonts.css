@@ -1,0 +1,189 @@
+/* VI 正文：简体 Noto Sans SC Book + 英文 Gotham Book，由 unicode-range 自动切换 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+
+@font-face {
+  font-family: 'Esquel Activity VI';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    local('Noto Sans SC'),
+    local('Source Han Sans SC'),
+    url('https://fonts.gstatic.com/s/notosanssc/v36/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYxNbPzS5HE.woff2')
+      format('woff2');
+  unicode-range:
+    U+4E00-9FFF, U+3400-4DBF, U+F900-FAFF, U+3000-303F, U+FF00-FFEF, U+FE30-FE4F;
+}
+
+@font-face {
+  font-family: 'Esquel Activity VI';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src:
+    local('Noto Sans SC Bold'),
+    url('https://fonts.gstatic.com/s/notosanssc/v36/k3kXo84MPvpLmixcA63oeALhLOCT-b5maG9_FnYxNbPzS5HE.woff2')
+      format('woff2');
+  unicode-range:
+    U+4E00-9FFF, U+3400-4DBF, U+F900-FAFF, U+3000-303F, U+FF00-FFEF, U+FE30-FE4F;
+}
+
+@font-face {
+  font-family: 'Esquel Activity VI';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    local('Gotham Book'),
+    local('Gotham-Book'),
+    url('/fonts/Gotham-Book.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F,
+    U+2070-209F, U+20A0-20CF, U+2100-214F, U+2150-218F, U+2190-21FF, U+2200-22FF,
+    U+FEFF, U+FFFD;
+}
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.activity-vi-editor,
+.activity-vi-copy {
+  font-family: 'Esquel Activity VI', 'Noto Sans SC', sans-serif;
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #000;
+}
+
+.activity-vi-copy h2 {
+  font-size: 1.125rem;
+  font-weight: 400;
+  margin: 0.75em 0 0.35em;
+}
+
+.activity-vi-copy p {
+  margin: 0 0 0.75em;
+}
+
+.activity-vi-copy p:last-child {
+  margin-bottom: 0;
+}
+
+.activity-vi-editor strong,
+.activity-vi-editor b,
+.activity-vi-copy strong,
+.activity-vi-copy b {
+  font-weight: 700;
+}
+
+.activity-vi-editor u,
+.activity-vi-copy u {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.activity-vi-editor > p,
+.activity-vi-copy > p {
+  margin: 0 0 0.5em;
+}
+
+.activity-vi-editor > p:last-child,
+.activity-vi-copy > p:last-child {
+  margin-bottom: 0;
+}
+
+/* 无序列表：用 ::before 绘制符号，避免原生 marker 与 li>p 结构错位叠字 */
+.activity-vi-editor ul,
+.activity-vi-copy ul {
+  list-style: none;
+  margin: 0.5em 0;
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.activity-vi-editor ul > li,
+.activity-vi-copy ul > li {
+  position: relative;
+  list-style: none;
+  line-height: 1.75;
+  margin: 0.2em 0;
+  padding-left: 1.35em;
+}
+
+.activity-vi-editor ul > li::before,
+.activity-vi-copy ul > li::before {
+  content: '\2022';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.1em;
+  text-align: center;
+  line-height: inherit;
+  color: #000;
+}
+
+.activity-vi-editor ul[style*='circle'] > li::before,
+.activity-vi-copy ul[style*='circle'] > li::before {
+  content: '\25E6';
+}
+
+.activity-vi-editor ul[style*='square'] > li::before,
+.activity-vi-copy ul[style*='square'] > li::before {
+  content: '\25AA';
+}
+
+/* 有序列表：计数器 + ::before，同样避免原生 marker 错位 */
+.activity-vi-editor ol,
+.activity-vi-copy ol {
+  list-style: none;
+  margin: 0.5em 0;
+  margin-left: 0;
+  padding-left: 0;
+  counter-reset: activity-ol;
+}
+
+.activity-vi-editor ol > li,
+.activity-vi-copy ol > li {
+  position: relative;
+  list-style: none;
+  line-height: 1.75;
+  margin: 0.2em 0;
+  padding-left: 1.75em;
+  counter-increment: activity-ol;
+}
+
+.activity-vi-editor ol > li::before,
+.activity-vi-copy ol > li::before {
+  content: counter(activity-ol) '.';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.5em;
+  text-align: right;
+  line-height: inherit;
+  color: #000;
+}
+
+.activity-vi-editor ol[style*='lower-alpha'] > li::before,
+.activity-vi-copy ol[style*='lower-alpha'] > li::before {
+  content: counter(activity-ol, lower-alpha) '.';
+}
+
+.activity-vi-editor ol[style*='lower-roman'] > li::before,
+.activity-vi-copy ol[style*='lower-roman'] > li::before {
+  content: counter(activity-ol, lower-roman) '.';
+}
+
+.activity-vi-editor li > p,
+.activity-vi-copy li > p {
+  margin: 0;
+  padding: 0;
+}
+
+.activity-vi-editor li > ul,
+.activity-vi-copy li > ul,
+.activity-vi-editor li > ol,
+.activity-vi-copy li > ol {
+  margin: 0.25em 0;
+}
