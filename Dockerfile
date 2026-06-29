@@ -4,7 +4,8 @@ FROM node:20-bookworm-slim AS frontend-build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+# 前端构建不需要编译 better-sqlite3 等原生模块
+RUN npm ci --ignore-scripts
 
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json postcss.config.mjs ./
 COPY public ./public
