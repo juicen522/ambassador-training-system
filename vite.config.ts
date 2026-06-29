@@ -8,6 +8,7 @@ import { formatLanUrls } from './scripts/lanUrls.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const API_PORT = Number(process.env.AI_SERVER_PORT || 3001);
+const dockerBuild = process.env.VITE_DOCKER_BUILD === '1';
 
 function apiServerPlugin(): Plugin {
   let proc: ChildProcess | null = null;
@@ -193,7 +194,19 @@ function lanAccessPlugin(port: number): Plugin {
 }
 
 export default defineConfig({
-  plugins: [apiServerPlugin(), lanAccessPlugin(5181), react(), tailwindcss()],
+  plugins: [
+    ...(dockerBuild ? [] : [apiServerPlugin(), lanAccessPlugin(5181)]),
+    react(),
+    tailwindcss(),
+  ],
+  build: dockerBuild
+    ? {
+        // 小内存服务器上降低并行度，避免构建看似卡死或 OOM
+        rollupOptions: {
+          maxParallelFileOps: 2,
+        },
+      }
+    : undefined,
   server: {
     host: '0.0.0.0',
     port: 5181,
