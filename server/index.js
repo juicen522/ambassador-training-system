@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import { formatLanUrls } from '../scripts/lanUrls.js';
 import { fileURLToPath } from 'url';
@@ -64,6 +65,19 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/service-requests', serviceRequestsRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/quizzes', quizzesRoutes);
+
+if (process.env.NODE_ENV === 'production') {
+  const distDir = path.resolve(__dirname, '../dist');
+  if (fs.existsSync(distDir)) {
+    app.use(express.static(distDir, { index: false }));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distDir, 'index.html'));
+    });
+  } else {
+    console.warn('[production] 未找到 dist 目录，仅提供 API 服务');
+  }
+}
 
 app.use((err, _req, res, _next) => {
   console.error(err);

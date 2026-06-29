@@ -9,6 +9,7 @@
     "dev:all": "vite --host",
     "preview:lan": "vite preview --host",
     "build": "vite build",
+    "start": "NODE_ENV=production node server/index.js",
     "preview": "vite preview --host"
   },
   "dependencies": {

@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.gitignore
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+server/data/app.db
+server/data/app.db-*
+server/data/settings.json
+server/uploads/*
+!server/uploads/.gitkeep
+.cursor
+terminals
