@@ -488,16 +488,16 @@ export default function AdminAmbassadorServices() {
     ]),
   ];
 
-  const exportStatsRanking = () => {
+  const exportStatsRanking = async () => {
     if (loading) return;
     if (stats.length === 0) {
       window.alert('暂无大使数据可导出');
       return;
     }
-    downloadExcelSheet(excelFilename('大使时长排行'), '时长排行', rankingRows());
+    await downloadExcelSheet(excelFilename('大使时长排行'), '时长排行', rankingRows());
   };
 
-  const exportVisitRecords = () => {
+  const exportVisitRecords = async () => {
     if (loading) return;
     if (requests.length === 0) {
       window.alert('暂无参观记录可导出');
@@ -555,7 +555,7 @@ export default function AdminAmbassadorServices() {
         r.submittedAt ? formatDt(r.submittedAt) : formatDt(r.createdAt),
       ]),
     ];
-    downloadExcelSheet(excelFilename('参观记录'), '参观记录', rows);
+    await downloadExcelSheet(excelFilename('参观记录'), '参观记录', rows);
   };
 
   return (

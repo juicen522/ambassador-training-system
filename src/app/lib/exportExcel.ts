@@ -1,5 +1,3 @@
-import * as XLSX from 'xlsx';
-
 export type ExcelSheet = {
   name: string;
   rows: (string | number | null | undefined)[][];
@@ -16,7 +14,8 @@ function safeSheetName(name: string): string {
   return name.replace(/[\\/*?:\[\]]/g, '_').slice(0, 31) || 'Sheet1';
 }
 
-export function downloadExcel(filename: string, sheets: ExcelSheet[]): void {
+export async function downloadExcel(filename: string, sheets: ExcelSheet[]): Promise<void> {
+  const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
   for (const sheet of sheets) {
     const ws = XLSX.utils.aoa_to_sheet(sheet.rows);
@@ -26,10 +25,10 @@ export function downloadExcel(filename: string, sheets: ExcelSheet[]): void {
   XLSX.writeFile(wb, out);
 }
 
-export function downloadExcelSheet(
+export async function downloadExcelSheet(
   filename: string,
   sheetName: string,
   rows: (string | number | null | undefined)[][],
-): void {
-  downloadExcel(filename, [{ name: sheetName, rows }]);
+): Promise<void> {
+  await downloadExcel(filename, [{ name: sheetName, rows }]);
 }

@@ -7,11 +7,11 @@ ENV CI=true
 ENV VITE_DOCKER_BUILD=1
 ENV SKIP_API_SERVER=1
 # 小内存 VPS 建议至少 2GB；不足时可临时加 swap
-ENV NODE_OPTIONS=--max-old-space-size=2048
+ENV NODE_OPTIONS=--max-old-space-size=1536
 
 COPY package.json package-lock.json ./
 # 前端构建不需要编译 better-sqlite3 等原生模块
-RUN npm ci --ignore-scripts
+RUN npm ci --ignore-scripts --no-audit --no-fund
 
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json postcss.config.mjs ./
 COPY public ./public
@@ -19,9 +19,9 @@ COPY src ./src
 COPY scripts ./scripts
 
 # 构建在 1 核小机器上常需 3–10 分钟，日志较少时并非卡死
-RUN echo ">>> 开始 vite build（请耐心等待，小内存机器可能较慢）..." \
+RUN echo ">>> Starting vite build for low-memory Docker host..." \
   && npm run build -- --logLevel info \
-  && echo ">>> 前端构建完成"
+  && echo ">>> Frontend build completed"
 
 FROM node:20-bookworm-slim AS production
 WORKDIR /app
@@ -31,7 +31,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --no-audit --no-fund
 
 COPY server ./server
 COPY scripts ./scripts

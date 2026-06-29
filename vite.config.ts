@@ -204,6 +204,13 @@ export default defineConfig({
         // 小内存服务器上降低并行度，避免构建看似卡死或 OOM
         rollupOptions: {
           maxParallelFileOps: 2,
+          output: {
+            manualChunks(id) {
+              if (!id.includes('node_modules')) return undefined;
+              if (id.includes('/xlsx/')) return 'vendor-xlsx';
+              return 'vendor';
+            },
+          },
         },
       }
     : undefined,
