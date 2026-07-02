@@ -1,4 +1,6 @@
-FROM node:20-bookworm-slim AS frontend-build
+ARG NODE_IMAGE=node:20-bookworm-slim
+
+FROM ${NODE_IMAGE} AS frontend-build
 WORKDIR /app
 
 ENV CI=true
@@ -9,7 +11,8 @@ ENV NODE_OPTIONS=--max-old-space-size=1536
 
 COPY package.json package-lock.json ./
 # 前端构建不需要编译 better-sqlite3 等原生模块
-RUN npm ci --ignore-scripts --no-audit --no-fund
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+RUN npm ci --ignore-scripts --no-audit --no-fund --registry=${NPM_REGISTRY}
 
 COPY index.html vite.config.ts tsconfig.json tsconfig.node.json postcss.config.mjs ./
 COPY public ./public
@@ -21,7 +24,7 @@ RUN echo ">>> Starting vite build for low-memory Docker host..." \
   && npm run build -- --logLevel info \
   && echo ">>> Frontend build completed"
 
-FROM node:20-bookworm-slim AS production
+FROM ${NODE_IMAGE} AS production
 WORKDIR /app
 
 RUN apt-get update \
@@ -29,7 +32,8 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --no-audit --no-fund
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+RUN npm ci --omit=dev --no-audit --no-fund --registry=${NPM_REGISTRY}
 
 COPY server ./server
 COPY scripts ./scripts
