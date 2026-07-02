@@ -1,0 +1,38 @@
+services:
+  app:
+    image: ${APP_IMAGE:?APP_IMAGE is required}
+    container_name: ambassador-training
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:3001"
+    environment:
+      NODE_ENV: production
+      APP_MODE: production
+      AI_SERVER_HOST: 0.0.0.0
+      AI_SERVER_PORT: "3001"
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com/v1}
+      AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-系统管理员}
+    volumes:
+      - app-data:/app/server/data
+      - app-uploads:/app/server/uploads
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  app-data:
+  app-uploads:
